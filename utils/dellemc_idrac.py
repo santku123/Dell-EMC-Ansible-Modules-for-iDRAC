@@ -67,6 +67,8 @@ class iDRACConnection():
                 results['msg'] = "Could not find device driver for iDRAC with IP Address: " + idrac_ip
                 self.module.fail_json(**results)
 
+        # TODO: will be removed in later versions
+        idrac.use_redfish = True
         self.handle = idrac
         return idrac
 

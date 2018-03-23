@@ -3,23 +3,14 @@
 
 #
 # Dell EMC OpenManage Ansible Modules
+# Version BETA
 #
-# Copyright © 2017 Dell Inc. or its subsidiaries. All rights reserved.
-# Dell, EMC, and other trademarks are trademarks of Dell Inc. or its
-# subsidiaries. Other trademarks may be trademarks of their respective owners.
+# Copyright (C) 2018 Dell Inc.
+
+# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
+# All rights reserved. Dell, EMC, and other trademarks are trademarks of Dell Inc. or its subsidiaries.
+# Other trademarks may be trademarks of their respective owners.
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ANSIBLE_METADATA = {'metadata_version': '1.0',
                     'status': ['preview'],
@@ -57,17 +48,17 @@ options:
   share_name:
     required: True
     description:
-      - Network file share
+      - Local directory path or Network file share (CIFS or NFS)
   share_user:
-    required: True
+    required: False
     description:
       - Network share user in the format 'user@domain' if user is part of a domain else 'user'
   share_pwd:
-    required: True
+    required: False
     description:
       - Network share user password
   share_mnt:
-    required: True
+    required: False
     description:
       - Local mount path of the network file share with read-write permission for ansible user
   system_topology:
@@ -83,7 +74,7 @@ options:
     default: None
     type: 'dict'
 
-requirements: ['omsdk']
+requirements: ['Dell EMC OpenManage Python SDK']
 author: "anupam.aloke@dell.com"
 '''
 
@@ -255,18 +246,13 @@ def main():
             idrac_pwd=dict(required=True, type='str', no_log=True),
             idrac_port=dict(required=False, default=443, type='int'),
 
-            # Network File Share
+            # Local path or Network File Share
             share_name=dict(required=True, type='str'),
-            share_user=dict(required=True, type='str'),
-            share_pwd=dict(required=True, type='str', no_log=True),
-            share_mnt=dict(required=True, type='path'),
+            share_user=dict(required=False, type='str'),
+            share_pwd=dict(required=False, type='str', no_log=True),
+            share_mnt=dict(required=False, type='path'),
 
             server_topology=dict(required=False, default=None, type='dict'),
-            data_center_name=dict(required=False, default=None, type='str'),
-            aisle_name=dict(required=False, default=None, type='str'),
-            rack_name=dict(required=False, default=None, type='str'),
-            rack_slot=dict(required=False, default=None, type='str'),
-            room_name=dict(required=False, default=None, type='str')
         ),
         supports_check_mode=True)
 

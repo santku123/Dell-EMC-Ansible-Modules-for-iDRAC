@@ -52,17 +52,17 @@ options:
       - Network file share (CIFS, NFS)
     type: 'str'
   share_user:
-    required: True
+    required: False
     description:
       - Network share user in the format "user@domain" if user is part of a domain else "user"
     type: 'str'
   share_pwd:
-    required: True
+    required: False
     description:
       - Network share user password
     type: 'str'
   share_mnt:
-    required: True
+    required: False
     description:
       - Local mount path of the network file share specified in I(share_name) with read-write permission for ansible user
     type: 'path'

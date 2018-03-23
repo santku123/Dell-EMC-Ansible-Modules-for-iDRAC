@@ -3,23 +3,14 @@
 
 #
 # Dell EMC OpenManage Ansible Modules
+# Version BETA
 #
-# Copyright © 2017 Dell Inc. or its subsidiaries. All rights reserved.
-# Dell, EMC, and other trademarks are trademarks of Dell Inc. or its
-# subsidiaries. Other trademarks may be trademarks of their respective owners.
+# Copyright (C) 2018 Dell Inc.
+
+# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
+# All rights reserved. Dell, EMC, and other trademarks are trademarks of Dell Inc. or its subsidiaries.
+# Other trademarks may be trademarks of their respective owners.
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ANSIBLE_METADATA = {'metadata_version': '1.0',
                     'status': ['preview'],
@@ -57,20 +48,20 @@ options:
   share_name:
     required: True
     description:
-      - Network file share (either CIFS or NFS)
+      - Local directory path or Network file share (either CIFS or NFS)
     type: 'str'
   share_user:
-    required: True
+    required: False
     description:
       - Network share user in the format "user@domain" if user is part of a domain else 'user'
     type: 'str'
   share_pwd:
-    required: True
+    required: False
     description:
       - Network share user password
     type: 'str'
   share_mnt:
-    required: True
+    required: False
     description:
       - Local mount path of the network file share with read-write permission for ansible user
     type:'path'
@@ -226,9 +217,9 @@ def main():
 
             # Network File Share
             share_name=dict(required=True, type='str'),
-            share_user=dict(required=True, type='str'),
-            share_pwd=dict(required=True, type='str', no_log=True),
-            share_mnt=dict(required=True, type='path'),
+            share_user=dict(required=False, type='str'),
+            share_pwd=dict(required=False, type='str', no_log=True),
+            share_mnt=dict(required=False, type='path'),
 
             # SNMP Alert Destinations Configuration Options
             snmp_alert_dest=dict(required=True, type='list'),
