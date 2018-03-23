@@ -4,27 +4,20 @@
 #
 # Copyright (c) 2017 Dell Inc.
 #
-# This file is part of Ansible
+# Version: BETA
 #
-# Ansible is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# Ansible is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
+# Copyright © 2018 Dell Inc.
+# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
+# All rights reserved. Dell, EMC, and other trademarks are trademarks of
+# Dell Inc. or its subsidiaries.
+# Other trademarks may be trademarks of their respective owners.
 #
 
 
 try:
     from omsdk.sdkinfra import sdkinfra
     from omsdk.sdkcreds import UserCredentials
-    from omsdk.sdkfile import FileOnShare
+    from omsdk.sdkfile import FileOnShare, file_share_manager
     HAS_OMSDK = True
 except ImportError:
     HAS_OMSDK = False
@@ -98,14 +91,21 @@ class iDRACConnection():
             share_pwd  = self.module.params.get('share_pwd')
             share_mnt  = self.module.params.get('share_mnt')
 
-            if share_name and share_user and share_pwd and share_mnt:
-                nw_share = FileOnShare(remote=share_name,
-                                       mount_point=share_mnt,
-                                       isFolder=True,
-                                       creds=UserCredentials(share_user, share_pwd))
+            if share_name: 
+                if not share_mnt:
+                    file_share = file_share_manager.create_share_obj(
+                                    share_path=share_name,
+                                    creds=UserCredentials(share_user, share_pwd),
+                                    isFolder=True)
+                else:
+                    file_share = FileOnShare(remote=share_name,
+                                    mount_point=share_mnt,
+                                    isFolder=True,
+                                    creds=UserCredentials(share_user, share_pwd))
 
-                if nw_share:
-                    return self.handle.config_mgr.set_liason_share(nw_share)
+                if file_share:
+                    return self.handle.config_mgr.set_liason_share(file_share)
+
         except Exception as e:
             results['msg'] = "Error: %s" % str(e)
             self.module.fail_json(**results)

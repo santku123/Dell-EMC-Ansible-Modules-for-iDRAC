@@ -3,23 +3,14 @@
 
 #
 # Dell EMC OpenManage Ansible Modules
+# Version BETA
 #
-# Copyright © 2017 Dell Inc. or its subsidiaries. All rights reserved.
-# Dell, EMC, and other trademarks are trademarks of Dell Inc. or its
-# subsidiaries. Other trademarks may be trademarks of their respective owners.
+# Copyright (C) 2018 Dell Inc.
+
+# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
+# All rights reserved. Dell, EMC, and other trademarks are trademarks of Dell Inc. or its subsidiaries.
+# Other trademarks may be trademarks of their respective owners.
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ANSIBLE_METADATA = {'metadata_version': '1.0',
                     'status': ['preview'],
@@ -60,17 +51,17 @@ options:
       - Network file share (either CIFS or NFS)
     type: 'str'
   share_user:
-    required: True
+    required: False
     description:
       - Network share user in the format 'user@domain' if user is part of a domain else 'user'
     type: 'str'
   share_pwd:
-    required: True
+    required: False
     description:
       - Network share user password
     type: 'str'
   share_mnt:
-    required: True
+    required: False
     description:
       - Local mount path of the network file share specified in I(share_name) with read-write permission for ansible user
     type: 'path'
@@ -90,12 +81,23 @@ options:
       - if C(RAID), will import RAID configuration from SCP file
     choices: ['ALL', 'IDRAC', 'BIOS', 'NIC', 'RAID']
     default: 'ALL'
-  reboot:
+  end_host_power_state:
     required: False
     description:
-      - Reboot after importing the SCP
-    type: 'bool'
-    default: False 
+      - if C(On), host's power state after importing the SCP will be ON
+      - if C(Off), host's power state after importing the SCP will be OFF
+    choices: ["On", "Off"]
+    type: 'str'
+    default: "On"
+  shutdown_type:
+    required: False
+    description:
+      - if C(Graceful), will gracefully shut down the server
+      - if C(Forced), will do a forced shutdown of the server
+      - if C(NoReboot), will not reboot the server
+    choices: ["Graceful", "Forced", "NoReboot"]
+    type: 'str'
+    default: "Graceful"
   job_wait:
     required: False
     description:
@@ -112,30 +114,34 @@ EXAMPLES = '''
 # Import Server Configuration Profile from a CIFS Network Share
 - name: Import Server Configuration Profile
     dellemc_idrac_import_scp:
-      idrac_ip:   "192.168.1.1"
-      idrac_user: "root"
-      idrac_pwd:  "calvin"
-      share_name: "\\\\192.168.10.10\\share"
-      share_user: "user1"
-      share_pwd:  "password"
-      share_mnt:  "/mnt/share"
-      scp_file:   "scp_file.xml"
-      scp_components: "ALL"
-      reboot:      False
+      idrac_ip:         "192.168.1.1"
+      idrac_user:       "root"
+      idrac_pwd:        "calvin"
+      share_name:       "\\\\192.168.10.10\\share"
+      share_user:       "user1"
+      share_pwd:        "password"
+      share_mnt:        "/mnt/share"
+      scp_file:         "scp_file.xml"
+      scp_components:   "ALL"
+      end_host_power_state: "On"
+      shutdown_type:    "Graceful"
+      job_wait:         True
 
 # Import Server Configuration Profile from a NFS Network Share
 - name: Import Server Configuration Profile
     dellemc_idrac_import_scp:
-      idrac_ip:   "192.168.1.1"
-      idrac_user: "root"
-      idrac_pwd:  "calvin"
-      share_name: "192.168.10.10:/share"
-      share_user: "user1"
-      share_pwd:  "password"
-      share_mnt:  "/mnt/share"
-      scp_file:   "scp_file.xml"
-      scp_components: "ALL"
-      reboot:      False
+      idrac_ip:             "192.168.1.1"
+      idrac_user:           "root"
+      idrac_pwd:            "calvin"
+      share_name:           "192.168.10.10:/share"
+      share_user:           "user1"
+      share_pwd:            "password"
+      share_mnt:            "/mnt/share"
+      scp_file:             "scp_file.xml"
+      scp_components:       "ALL"
+      end_host_power_state: "On"
+      shutdown_type:        "Graceful"
+      job_wait:             True
 '''
 
 RETURN = '''
@@ -146,8 +152,11 @@ from ansible.module_utils.dellemc_idrac import iDRACConnection
 from ansible.module_utils.basic import AnsibleModule
 try:
     from omsdk.sdkcreds import UserCredentials
-    from omsdk.sdkfile import FileOnShare
-    from omdrivers.enums.iDRAC.iDRACEnums import ExportFormatEnum, SCPTargetEnum
+    from omsdk.sdkfile import FileOnShare, file_share_manager
+    from omsdk.sdkcenum import TypeHelper
+    from omdrivers.enums.iDRAC.iDRACEnums import (
+            EndHostPowerStateEnum, SCPTargetEnum, ShutdownTypeEnum
+    )
     HAS_OMSDK = True
 except ImportError:
     HAS_OMSDK = False
@@ -172,33 +181,38 @@ def import_server_config_profile(idrac, module):
         if module.check_mode:
             msg['changed'] = True
         else:
-            myshare = FileOnShare(remote=module.params['share_name'],
-                                  mount_point=module.params['share_mnt'],
-                                  isFolder=True)
-            myshare.addcreds(UserCredentials(module.params['share_user'],
-                                             module.params['share_pwd']))
+            myshare = file_share_manager.create_share_obj(
+                          share_path=module.params['share_name'],
+                          creds=UserCredentials(module.params['share_user'],
+                                                module.params['share_pwd']),
+                          isFolder=True)
             scp_file_path = myshare.new_file(module.params['scp_file'])
 
-            scp_components = SCPTargetEnum.ALL
+            scp_components = TypeHelper.convert_to_enum(
+                                 module.params["scp_components"], SCPTargetEnum)
 
-            if module.params['scp_components'] == 'IDRAC':
-                scp_components = SCPTargetEnum.iDRAC
-            elif module.params['scp_components'] == 'BIOS':
-                scp_components = SCPTargetEnum.BIOS
-            elif module.params['scp_components'] == 'NIC':
-                scp_components = SCPTargetEnum.NIC
-            elif module.params['scp_components'] == 'RAID':
-                scp_components = SCPTargetEnum.RAID
+            host_power_state = TypeHelper.convert_to_enum(
+                                   module.params["end_host_power_state"],
+                                   EndHostPowerStateEnum)
 
-            msg['msg'] = idrac.config_mgr.scp_import(scp_share_path=scp_file_path,
-                                                     components=scp_components,
-                                                     format_file=ExportFormatEnum.XML,
-                                                     reboot=module.params['reboot'],
-                                                     job_wait=module.params['job_wait'])
+            shutdown_type = TypeHelper.convert_to_enum(
+                                module.params["shutdown_type"], ShutdownTypeEnum)
+
+            # Kludge: will be removed later
+            idrac.use_redfish = True
+            msg['msg'] = idrac.config_mgr.scp_import(
+                                              share_path=scp_file_path,
+                                              target=scp_components,
+                                              shutdown_type=shutdown_type,
+                                              end_host_power_state=host_power_state,
+                                              job_wait=module.params['job_wait'])
 
             if "Status" in msg['msg']:
                 if msg['msg']['Status'] == "Success":
                     msg['changed'] = True
+                    if "Message" in msg['msg'] and \
+                            "No changes were applied" in msg['msg']['Message']:
+                        msg['changed'] = False
                 else:
                     msg['failed'] = True
 
@@ -226,15 +240,19 @@ def main():
 
             # Network File Share
             share_name=dict(required=True, type='str'),
-            share_user=dict(required=True, type='str'),
-            share_pwd=dict(required=True, type='str', no_log=True),
-            share_mnt=dict(required=True, type='path'),
+            share_user=dict(required=False, type='str'),
+            share_pwd=dict(required=False, type='str', no_log=True),
+            share_mnt=dict(required=False, type='path'),
 
             scp_file=dict(required=True, type='str'),
             scp_components=dict(required=False,
                                 choices=['ALL', 'IDRAC', 'BIOS', 'NIC', 'RAID'],
                                 default='ALL'),
-            reboot=dict(required=False, default=False, type='bool'),
+            end_host_power_state=dict(required=False, choices=["On", "Off"],
+                                      default="On", type='str'),
+            shutdown_type=dict(required=False,
+                               choices=["Graceful", "Forced", "NoReboot"],
+                               default="Graceful", type='str'),
             job_wait=dict(required=False, default=True, type='bool')
         ),
 
