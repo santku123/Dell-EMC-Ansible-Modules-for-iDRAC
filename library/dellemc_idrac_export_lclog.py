@@ -3,23 +3,14 @@
 
 #
 # Dell EMC OpenManage Ansible Modules
+# Version BETA
 #
-# Copyright © 2017 Dell Inc. or its subsidiaries. All rights reserved.
-# Dell, EMC, and other trademarks are trademarks of Dell Inc. or its
-# subsidiaries. Other trademarks may be trademarks of their respective owners.
+# Copyright (C) 2018 Dell Inc.
+
+# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
+# All rights reserved. Dell, EMC, and other trademarks are trademarks of Dell Inc. or its subsidiaries.
+# Other trademarks may be trademarks of their respective owners.
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ANSIBLE_METADATA = {'metadata_version': '1.0',
                     'status': ['preview'],
@@ -69,6 +60,13 @@ options:
     description:
       - Network share user password
     type: 'str'
+  job_wait:
+    required: False
+    description:
+      - If C(True), then will wait for Lifecycle Log export job to finish and return the job completion status
+      - if C(False), then will return immediately with a JOB ID after queueing tthe Lifecycle Log export job in the LC job queue
+    type: 'bool'
+    default: True
 
 requirements: ['Dell EMC OpenManage Python SDK']
 author: "anupam.aloke@dell.com"
@@ -94,7 +92,7 @@ from ansible.module_utils.dellemc_idrac import iDRACConnection
 from ansible.module_utils.basic import AnsibleModule
 try:
     from omsdk.sdkcreds import UserCredentials
-    from omsdk.sdkfile import FileOnShare
+    from omsdk.sdkfile import FileOnShare, file_share_manager
     HAS_OMSDK = True
 except ImportError:
     HAS_OMSDK = False
@@ -116,10 +114,12 @@ def export_lc_logs(idrac, module):
     try:
         lclog_file_name_format = "%ip_%Y%m%d_%H%M%S_LC_Log.log"
 
-        myshare = FileOnShare(remote=module.params['share_name'],
-                              isFolder=True,
-                              creds=UserCredentials(module.params['share_user'],
-                                                    module.params['share_pwd']))
+        myshare = file_share_manager.create_share_obj(
+                    share_path=module.params['share_name'],
+                    creds=UserCredentials(module.params['share_user'],
+                                          module.params['share_pwd']),
+                    isFolder=True)
+
         lc_log_file = myshare.new_file(lclog_file_name_format)
 
         msg['msg'] = idrac.log_mgr.lclog_export(lc_log_file)
@@ -152,7 +152,10 @@ def main():
             # Network File Share
             share_name=dict(required=True, type='str'),
             share_user=dict(required=True, type='str'),
-            share_pwd=dict(required=True, type='str', no_log=True)
+            share_pwd=dict(required=True, type='str', no_log=True),
+
+            # Job wait
+            job_wait=dict(required=False, default=True, type='bool')
         ),
         supports_check_mode=True)
 
