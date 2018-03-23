@@ -3,23 +3,14 @@
 
 #
 # Dell EMC OpenManage Ansible Modules
+# Version BETA
 #
-# Copyright © 2017 Dell Inc. or its subsidiaries. All rights reserved.
-# Dell, EMC, and other trademarks are trademarks of Dell Inc. or its
-# subsidiaries. Other trademarks may be trademarks of their respective owners.
+# Copyright (C) 2018 Dell Inc.
+
+# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
+# All rights reserved. Dell, EMC, and other trademarks are trademarks of Dell Inc. or its subsidiaries.
+# Other trademarks may be trademarks of their respective owners.
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ANSIBLE_METADATA = {'metadata_version': '1.0',
                     'status': ['preview'],
@@ -28,10 +19,10 @@ ANSIBLE_METADATA = {'metadata_version': '1.0',
 DOCUMENTATION = '''
 ---
 module: dellemc_idrac_export_scp
-short_description: Export Server Configuration Profile (SCP) to network share
+short_description: Export Server Configuration Profile (SCP) to remote network share or local file
 version_added: "2.3"
 description:
-    - Export Server Configuration Profile to a given network share (CIFS, NFS)
+    - Export Server Configuration Profile to a given network share (CIFS, NFS) or local file
 options:
   idrac_ip:
     required: True
@@ -60,12 +51,12 @@ options:
       - CIFS or NFS Network share
     type: 'str'
   share_user:
-    required: True
+    required: False
     description:
       - Network share user in the format 'user@domain' if user is part of a domain else 'user'
     type: 'str'
   share_pwd:
-    required: True
+    required: False
     description:
       - Network share user password
     type: 'str'
@@ -86,12 +77,13 @@ options:
       - if C(JSON), will export the SCP in JSON format
     choices: ['XML', 'JSON']
     default: 'XML'
-  export_method:
+  export_use:
     required: False
     description:
       - if C(Default), will export the SCP using default method
       - if C(Clone), will export the SCP using clone method
-    choices: ['Default', 'Clone']
+      - if C(Replace), will export the SCP using Replace method
+    choices: ['Default', 'Clone', 'Replace']
     default: 'Default'
   job_wait:
     required: False
@@ -126,6 +118,13 @@ EXAMPLES = '''
       share_user: "user1"
       share_pwd:  "password"
 
+# Export SCP to a local file
+- name: Export Server Configuration Profile (SCP)
+  dellemc_idrac_export_scp:
+    idrac_ip:   "192.168.1.1"
+    idrac_user: "root"
+    idrac_pwd:  "calvin"
+    share_name: "/home/user"
 '''
 
 RETURN = '''
@@ -136,10 +135,10 @@ from ansible.module_utils.dellemc_idrac import iDRACConnection
 from ansible.module_utils.basic import AnsibleModule
 try:
     from omsdk.sdkcreds import UserCredentials
-    from omsdk.sdkfile import FileOnShare
+    from omsdk.sdkfile import FileOnShare, file_share_manager
     from omsdk.sdkcenum import TypeHelper
     from omdrivers.enums.iDRAC.iDRACEnums import (
-        ExportFormatEnum, ExportMethodEnum, SCPTargetEnum
+        ExportFormatEnum, ExportUseEnum, SCPTargetEnum
     )
     HAS_OMSDK = True
 except ImportError:
@@ -161,29 +160,38 @@ def export_server_config_profile(idrac, module):
 
     try:
         scp_file_name_format = "%ip_%Y%m%d_%H%M%S_" + \
-            module.params['scp_components'] + "_SCP.xml"
-
-        myshare = FileOnShare(remote=module.params['share_name'],
-                              isFolder=True)
-        myshare.addcreds(UserCredentials(module.params['share_user'],
-                                         module.params['share_pwd']))
-        scp_file_name = myshare.new_file(scp_file_name_format)
-
-        scp_components = TypeHelper.convert_to_enum(module.params['scp_components'],
-                                                    SCPTargetEnum)
+                               module.params['scp_components'] + "_SCP"
 
         export_format = ExportFormatEnum.XML
         if module.params['export_format'] == 'JSON':
+            scp_file_name_format += ".{}".format("json")
             export_format = ExportFormatEnum.JSON
+        else:
+            scp_file_name_format += ".{}".format("xml")
 
-        export_method = ExportMethodEnum.Default
-        if module.params['export_method'] == 'Clone':
-            export_method = ExportMethodEnum.Clone
+        myshare = file_share_manager.create_share_obj(
+                share_path=module.params['share_name'],
+                creds=UserCredentials(module.params['share_user'],
+                                      module.params['share_pwd']),
+                isFolder=True)
 
-        msg['msg'] = idrac.config_mgr.scp_export(scp_share_path=scp_file_name,
-                                                 components=scp_components,
-                                                 format_file=export_format,
-                                                 method=export_method,
+        scp_file_name = myshare.new_file(scp_file_name_format)
+
+        target = TypeHelper.convert_to_enum(module.params['scp_components'],
+                                            SCPTargetEnum)
+
+        export_use = ExportUseEnum.Default
+        if module.params['export_use'] == 'Clone':
+            export_use = ExportUseEnum.Clone
+        elif module.params['export_use'] == 'Replace':
+            export_use = ExportUseEnum.Replace
+
+        # Kludge: Need to be removed later
+        idrac.use_redfish = True
+        msg['msg'] = idrac.config_mgr.scp_export(share_path=scp_file_name,
+                                                 target=target,
+                                                 export_format=export_format,
+                                                 export_use=export_use,
                                                  job_wait=module.params['job_wait'])
 
         if 'Status' in msg['msg'] and msg['msg']['Status'] != "Success":
@@ -213,16 +221,17 @@ def main():
 
             # Network File Share
             share_name=dict(required=True, type='str'),
-            share_pwd=dict(required=True, type='str', no_log=True),
-            share_user=dict(required=True, type='str'),
+            share_pwd=dict(required=False, type='str', no_log=True),
+            share_user=dict(required=False, type='str'),
 
             scp_components=dict(required=False,
                                 choices=['ALL', 'IDRAC', 'BIOS', 'NIC', 'RAID'],
                                 default='ALL', type='str'),
             export_format=dict(required=False, choices=['XML', 'JSON'],
                                default='XML'),
-            export_method=dict(required=False, choices=['Default', 'Clone'],
-                               default='Default'),
+            export_use=dict(required=False,
+                            choices=['Default', 'Clone', 'Replace'],
+                            default='Default'),
             job_wait=dict(required=False, default=True, type='bool')
         ),
 
