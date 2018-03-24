@@ -3,23 +3,13 @@
 
 #
 # Dell EMC OpenManage Ansible Modules
+# Version 1.0
+# Copyright (C) 2018 Dell Inc.
+
+# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
+# All rights reserved. Dell, EMC, and other trademarks are trademarks of Dell Inc. or its subsidiaries.
+# Other trademarks may be trademarks of their respective owners.
 #
-# Copyright © 2017 Dell Inc. or its subsidiaries. All rights reserved.
-# Dell, EMC, and other trademarks are trademarks of Dell Inc. or its
-# subsidiaries. Other trademarks may be trademarks of their respective owners.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ANSIBLE_METADATA = {'metadata_version': '1.0',
                     'status': ['preview'],
@@ -87,7 +77,7 @@ options:
     default: True
     type: 'bool'
 
-requirements: ['omsdk']
+requirements: ['Dell EMC OpenManage Python SDK']
 author: "anupam.aloke@dell.com"
 '''
 
@@ -143,8 +133,10 @@ def boot_to_network_iso(idrac, module):
                                                         module.params['share_pwd']))
             iso_image = myshare.new_file(module.params['iso_image'])
 
-            msg['msg'] = idrac.config_mgr.boot_to_network_iso(iso_image,
-                                                              module.params['job_wait'])
+            msg['msg'] = idrac.config_mgr.boot_to_network_iso(
+                                              network_iso_image=iso_image,
+                                              uefi_target="",
+                                              job_wait=module.params['job_wait'])
 
             if "Status" in msg['msg']:
                 if msg['msg']['Status'] == "Success":
@@ -178,7 +170,6 @@ def main():
             share_name=dict(required=True, type='str'),
             share_user=dict(required=True, type='str'),
             share_pwd=dict(required=True, type='str', no_log=True),
-            share_mnt=dict(required=True, type='path'),
 
             # ISO Image relative to Network File Share
             iso_image=dict(required=True, type='str'),
