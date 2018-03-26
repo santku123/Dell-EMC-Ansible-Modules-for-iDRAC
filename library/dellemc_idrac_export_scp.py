@@ -100,23 +100,23 @@ author: "anupam.aloke@dell.com"
 EXAMPLES = '''
 # Export SCP to a CIFS network share
 - name: Export Server Configuration Profile (SCP)
-    dellemc_idrac_export_scp:
-      idrac_ip:   "192.168.1.1"
-      idrac_user: "root"
-      idrac_pwd:  "calvin"
-      share_name: "\\\\192.168.10.10\\share"
-      share_user: "user1"
-      share_pwd:  "password"
+  dellemc_idrac_export_scp:
+    idrac_ip:   "192.168.1.1"
+    idrac_user: "root"
+    idrac_pwd:  "calvin"
+    share_name: "\\\\192.168.10.10\\share"
+    share_user: "user1"
+    share_pwd:  "password"
 
 # Export SCP to a NFS network share
 - name: Export Server Configuration Profile (SCP)
-    dellemc_idrac_export_scp:
-      idrac_ip:   "192.168.1.1"
-      idrac_user: "root"
-      idrac_pwd:  "calvin"
-      share_name: "192.168.10.10:/share"
-      share_user: "user1"
-      share_pwd:  "password"
+  dellemc_idrac_export_scp:
+    idrac_ip:   "192.168.1.1"
+    idrac_user: "root"
+    idrac_pwd:  "calvin"
+    share_name: "192.168.10.10:/share"
+    share_user: "user1"
+    share_pwd:  "password"
 
 # Export SCP to a local file
 - name: Export Server Configuration Profile (SCP)
@@ -186,8 +186,6 @@ def export_server_config_profile(idrac, module):
         elif module.params['export_use'] == 'Replace':
             export_use = ExportUseEnum.Replace
 
-        # Kludge: Need to be removed later
-        idrac.use_redfish = True
         msg['msg'] = idrac.config_mgr.scp_export(share_path=scp_file_name,
                                                  target=target,
                                                  export_format=export_format,

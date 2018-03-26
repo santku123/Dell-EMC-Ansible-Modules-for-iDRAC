@@ -48,7 +48,7 @@ options:
   share_name:
     required: True
     description:
-      - Network file share (either CIFS or NFS)
+      - Local directory path or a Remote Network file share (either CIFS or NFS)
     type: 'str'
   share_user:
     required: False
@@ -111,6 +111,21 @@ author: "anupam.aloke@dell.com"
 '''
 
 EXAMPLES = '''
+# Import Server Configuration Profile from a local path
+# Following play will import a SCP file named 'scp_file.xml' from the local path
+# '/home/user' by sending the contents of the file in the https message to iDRAC
+- name: Import Server Configuration Profile
+  dellemc_idrac_import_scp:
+    idrac_ip:              "192.168.1.1"
+    idrac_user:            "root"
+    idrac_pwd:             "calvin"
+    share_name:            "/home/user"
+    scp_file:              "scp_file.xml"
+    scp_components:        "ALL"
+    end_host_power_state:  "On"
+    shutdown_type:         "Graceful"
+    job_wait:              True
+
 # Import Server Configuration Profile from a CIFS Network Share
 - name: Import Server Configuration Profile
     dellemc_idrac_import_scp:
@@ -198,8 +213,6 @@ def import_server_config_profile(idrac, module):
             shutdown_type = TypeHelper.convert_to_enum(
                                 module.params["shutdown_type"], ShutdownTypeEnum)
 
-            # Kludge: will be removed later
-            idrac.use_redfish = True
             msg['msg'] = idrac.config_mgr.scp_import(
                                               share_path=scp_file_path,
                                               target=scp_components,

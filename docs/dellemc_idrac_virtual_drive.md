@@ -16,10 +16,10 @@ Create/delete virtual drives
 | idrac_user  |   yes  |    | |  iDRAC user name  |
 | idrac_pwd  |   yes  |    | |  iDRAC user password  |
 | idrac_port  |   no  |    | |  iDRAC port  |
-| share_name  |   yes  |  | |  CIFS or NFS Network share  |
-| share_user  |   yes  |  | |  Network share user in the format user@domain  |
-| share_pwd  |   yes  |  | |  Network share user password  |
-| share_mnt  |   yes  |  | |  Local mount path of the network file share with read-write permission for ansible user  |
+| share_name  |   yes  |  | |  Local directory path on Ansible controller or a remote CIFS or NFS Network share  |
+| share_user  |   no  |  | |  Network share user in the format user@domain  |
+| share_pwd  |   no  |  | |  Network share user password  |
+| share_mnt  |   no  |  | |  Local mount path of the network file share with read-write permission for ansible user. This is mandatory when I(share_name) is a remote CIFS or NFS network share path.  |
 | vd_name | yes |  |  | Name of the Virtual Drive |
 | vd_size | no  |  |  | Size (in bytes) of the Virtual Drive. For e.g. if you want to create a virtual drive of size 1TB, then set the ```vd_size``` to ```1099511627776 (1 * 1024 * 1024 * 1024 * 1024 = 1099511627776 bytes)```. Please make sure that the 1TB of space is available on physical drives that are to be used for creating the VD. |
 | controller_fqdd |  yes  | | | FQDD of the storage controller, for e.g. "RAID.Integrated.1-1" |
