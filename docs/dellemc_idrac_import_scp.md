@@ -6,7 +6,7 @@ Import Server Configuration Profile (SCP) from a remote network share or a local
   * [Examples](#Examples)
 
 ## <a name="Synopsis"></a>Synopsis
- Import a given Server Configuration Profile (SCP) file from a network share (CIFS, NFS) or a local path on the Ansible controller
+Import a given Server Configuration Profile (SCP) file either from a remote network share (CIFS, NFS) or a local path on the Ansible controller.
 
 ## <a name="Options"></a>Options
 
@@ -19,7 +19,6 @@ Import Server Configuration Profile (SCP) from a remote network share or a local
 | share_name  |   yes  |  | |  Local directory path or a Remote Network file share (either CIFS or NFS)  |
 | share_user  |   No  |  | |  Network share user in the format 'user@domain' if user is part of a domain, else 'user'  |
 | share_pwd  |   No  |  | |  Network share user password  |
-| share_mnt  |   No  |  | |  Local mount path of the network file share specified in I(share_name) with read-write permission for ansible user  |
 | scp_file  |   yes  |    | |  Server Configuration Profile file name relative to I(share_name) |
 | scp_components  |   no  |  ALL  | <ul> <li>ALL</li>  <li>IDRAC</li>  <li>BIOS</li>  <li>NIC</li>  <li>RAID</li> </ul> |  <ul><li>if C(ALL), will import all components configurations from SCP file</li><li>if C(IDRAC), will import iDRAC comfiguration from SCP file</li><li>if C(BIOS), will import BIOS configuration from SCP file</li><li>if C(NIC), will import NIC configuration from SCP file</li><li>if C(RAID), will import RAID configuration from SCP file</li><ul>  |
 | end_hos_power_state |   no  |  On  | <ul><li>On</li><li>Off</li></ul> |  Host's power state after importing the SCP; Default is 'On'  |
@@ -30,8 +29,9 @@ Import Server Configuration Profile (SCP) from a remote network share or a local
 
 ```
 # Import Server Configuration Profile from a local path
-# Following play will import a SCP file named 'scp_file.xml' from the local path
-# '/home/user' by sending the contents of the file in the https message to iDRAC
+# Following play will import a SCP file named 'scp_file.xml' relative to the
+# local path '/home/user' by sending the contents of the file in the https
+# message to iDRAC
 
 - name: Import Server Configuration Profile
     dellemc_idrac_import_scp:
@@ -47,6 +47,7 @@ Import Server Configuration Profile (SCP) from a remote network share or a local
 
 ```
 
+```
 # Import Server Configuration Profile from a CIFS Network Share
 
 - name: Import Server Configuration Profile
