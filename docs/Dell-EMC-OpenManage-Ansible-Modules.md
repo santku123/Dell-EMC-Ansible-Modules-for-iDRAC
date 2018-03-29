@@ -2,7 +2,7 @@
 
 ## 1. Introduction
 
-Dell EMC OpenManage Ansible Modules provide customers the ability to automate the Out-of-Band configuration management, deployment and updates for Dell EMC PowerEdge Servers using Ansible by leeveragin the management automation built into the iDRAC with Lifecycle Controller. iDRAC provides both REST APIs based on DMTF RedFish industry standard and WS-Management (WS-MAN) for management automation of PowerEdge Servers.
+Dell EMC OpenManage Ansible Modules provide customers the ability to automate the Out-of-Band configuration management, deployment and updates for Dell EMC PowerEdge Servers using Ansible by leveraging the management automation built into the iDRAC with Lifecycle Controller. Using the iDRAC RESTful APIs based on DMTF's Redfish standard, OpenManage Ansible Modules enables data center and IT administrators to rapidly deploy their PowerEdge Server infrastructure, manage server configuration and orchestrate advanced tasks such as continuous deployment or firmware upgrade.
 
 With OpenManage Ansible modules, you can do:
   * Server administration
@@ -20,14 +20,16 @@ With OpenManage Ansible modules, you can do:
 
 ### 1.1 How OpenManage Ansible Modules work?
 
+OpenManage Ansible modules uses the iDRAC Redfish RESTful API, so they must be run locally on the Ansible Controller.
+
 OpenManage Ansible modules extensively uses the Server Configuration Profile (SCP) for most of the configuration management, deployment and update of PowerEdge Servers. Lifecycle Controller 2 version 1.4 and later adds support for SCP. A SCP contains all BIOS, iDRAC, Lifecycle Controller, Network amd Storage settings of a PowerEdge server and can be applied to multiple servers, enabling rapid, reliable and reproducible configuration.
 
 A SCP operation can be performed using any of the following methods:
-  * Export/Import to/from a remote network share via CIFS, NFS
-  * Export/Import to/from a remote network share via HTTP, HTTPS (iDRAC firmware 3.00.00.00 and above)
-  * Export/Import to/from via local file streaming (iDRAC firmware 3.00.00.00 and above)
+  * Export/Import SCP to/from a remote network share via CIFS, NFS
+  * Export/Import SCP to/from a remote network share via HTTP, HTTPS (iDRAC firmware 3.00.00.00 and above)
+  * Export/Import SCP to/from a local path by sending the content of the SCP file within the HTTP/S messages itself (supported on 14G PowerEdge Servers running iDRAC firmware version >=3.00.00.00 and on 12G/13G servers running iDRAC firmware version >= 2.50.50.50)
 
-:warning: **NOTE**: This BETA release of OpenManage Ansible Module supports only the first option listed above for SCP operations i.e. export/import to/from a remote network share via CIFS or NFS. Future releases will support all the options for SCP operations.
+OpenManage Ansible Modules currently support import/export from a remote network share as well as from a local path. Since these modules are executed locally on the Ansible Controller, it is recommended to use the local path. However, if you want to use the network file share then please see the following section on setting up local mount point.
 
 #### Setting up a local mount point for a remote network share
 
@@ -74,13 +76,13 @@ You can use either of the following ways to setup a local mount point:
 
 |Use Cases| | Included in this BETA release |
 |---------|-|-------------------------------|
-| Protocol Support | | <ul><li>WS-Management</li></ul> |
+| Protocol Support | | <ul><li>Redfish REST APIs</li><li>WS-Management</li></ul> |
 | Server Administration | Power and Thermal | <ul><li>Power Control</li></ul>|
 | | iDRAC Reset| <ul><li>Yes</li></ul> |
 |iDRAC Configuration| User and Password Management | <ul><li>Local user and password management<ul><li>Create User</li><li>Change Password</li><li>Change User Privileges</li><li>Remove an user</li></ul></li></ul> |
 | | iDRAC Network Configuration | <ul><li>NIC Selection</li><li>Zero-Touch Auto-Config settings</li><li>IPv4 Address settings:<ul><li>Enable/Disable IPv4</li><li>Static IPv4 Address settings (IPv4 address, gateway and netmask)</li><li>Enable/Disable DNS from DHCP</li><li>Preferred/Alternate DNS Server</li></ul></li><li>VLAN Configuration</li></ul> |
 | | SNMP and SNMP Alert Configuration| <ul><li>SNMP Agent configuration</li><li>SNMP Alert Destination Configuration<ul><li>Add, Modify and Delete an alert destination</li></ul></li></ul> |
-| | Server Configuration Profile (SCP) | <ul><li>Export SCP to remote network share (CIFS, NFS)</li><li>Import SCP from a remote network share (CIFS, NFS)</li></ul> |
+| | Server Configuration Profile (SCP) | <ul><li>Export SCP to a local file path on Ansible Controller or remote network share (CIFS, NFS)</li><li>Import SCP from a local file path on Ansible Controller or a remote network share (CIFS, NFS) or a local directory path</li></ul> |
 | | iDRAC Services | <ul><li>iDRAC Web Server configuration<ul><li>Enable/Disable Web server</li><li>TLS protocol version</li><li>SSL Encryption Bits</li><li>HTTP/HTTPS port</li><li>Time out period</li></ul></li></ul> |
 | | Lifecycle Controller (LC) attributes | <ul><li>Enable/Disable CSIOR (Collect System Inventory on Restart)</li></ul> |
 | BIOS Configuration | Boot Order Settings | <ul><li>Change Boot Mode (Bios, Uefi)</li><li>Change Bios/Uefi Boot Sequence</li><li>One-Time Bios/Uefi Boot Configuration settings</li></ul> |
@@ -101,99 +103,99 @@ You can use either of the following ways to setup a local mount point:
 
 OpenManage Ansible modules can be broadly categorized under the following sections. Each section describes the modules that are currently implemented including examples.
 
-## 3.1 Server Administration
+### 3.1 Server Administration
 
-### Power Control
+#### Power Control
 
   * [dellemc_idrac_power - Configure the Power Control options on a PowerEdge Server](./dellemc_idrac_power.md)
 
-### Lifecycle Controller (LC) and Server Status
+#### Lifecycle Controller (LC) and Server Status
 
   * [dellemc_idrac_lcstatus - Returns the lifecycle controller and server status](./dellemc_idrac_lcstatus.md)
 
-### Hardware Inventory
+#### Hardware Inventory
 
   * [dellemc_idrac_inventory - Returns the PowerEdge Server's hardware inventory](./dellemc_idrac_inventory.md) 
 
-### Firmware Inventory
+#### Firmware Inventory
 
   * [dellemc_idrac_sw_inventory - Returns the PowerEdge Server's firmware inventory](./dellemc_idrac_sw_inventory.md)
 
-## 3.2 iDRAC Configuration
+### 3.2 iDRAC Configuration
 
-### User Administration
+#### User Administration
 
   * [dellemc_idrac_user - Configure an iDRAC Local User](./dellemc_idrac_user.md)
 
-### iDRAC Network Settings
+#### iDRAC Network Settings
 
   * [dellemc_idrac_nic - Configure iDRAC Network Settings](./dellemc_idrac_nic.md)
 
-### SNMP and SNMP Alerts
+#### SNMP and SNMP Alerts
 
   * [dellemc_idrac_snmp - Configure SNMP settings on iDRAC](./dellemc_idrac_snmp.md)
   * [dellemc_idrac_snmp_alert - Configure Alert destinations](./dellemc_idrac_snmp_alert.md)
 
-### Server Configuration Profile (SCP)
+#### Server Configuration Profile (SCP)
 
   * [dellemc_idrac_export_scp - Export Server Configuration Profile (SCP) to Network Share](./dellemc_idrac_export_scp.md)
   * [dellemc_idrac_import_scp - Import Server configuration Profile (SCP) from a Network Share](./dellemc_idrac_import_scp.md)
 
-### Timezone and NTP
+#### Timezone and NTP
 
   * [dellemc_idrac_timezone_ntp - Configure Time Zone and NTP](./dellemc_idrac_timezone_ntp.md)
 
-### iDRAC Web Server
+#### iDRAC Web Server
 
   * [dellemc_idrac_web_server - Configure iDRAC Web Server Service Interface](./dellemc_idrac_web_server.md)
 
-### Remote Syslog
+#### Remote Syslog
 
   * [dellemc_idrac_syslog - Configure Remote System Logging](./dellemc_idrac_syslog.md)
 
-### Lifecycle Controller Job Management
+#### Lifecycle Controller Job Management
 
   * [dellemc_idrac_lc_job - Lifecycle controller job management](./dellemc_idrac_lc_job.md)
 
-### Lifecycle Controller Attributes
+#### Lifecycle Controller Attributes
 
   * [dellemc_idrac_lc_attr - Configure iDRAC Lifecycle Controller attributes](./dellemc_idrac_lc_attr.md)
 
-## 3.3 BIOS Configuration
+### 3.3 BIOS Configuration
 
-### Boot Order
+#### Boot Order
 
   * [dellemc_idrac_boot_order - Configure BIOS Boot Settings](./dellemc_idrac_boot_order.md)
 
-## 3.4 Storage Configuration
+### 3.4 Storage Configuration
 
-### Virtual Drives
+#### Virtual Drives
 
   * [dellemc_idrac_virtual_drive - Create and delete virtual drives](./dellemc_idrac_virtual_drive.md)
 
-## 3.5 OS Deployment
+### 3.5 OS Deployment
 
-### Boot to Network ISO
+#### Boot to Network ISO
 
   * [dellemc_idrac_boot_to_nw_iso - Boot to a Network ISO image](./dellemc_idrac_boot_to_nw_iso.md)
 
-## 3.6 Firmware Update
+### 3.6 Firmware Update
 
-### Update Firmware from a Network Share
+#### Update Firmware from a Network Share
 
   * [dellemc_idrac_firmware_update - Update firmware from a network share](./dellemc_idrac_firmware_update.md)
 
-## 3.7 Monitor 
+### 3.7 Monitor 
 
-### Lifecycle Controller Logs
+#### Lifecycle Controller Logs
 
   * [dellemc_idrac_export_lclog - Export Lifecycle Controller log file to a network share](./dellemc_idrac_export_lclog.md)
 
-### Tech Support Report (TSR)
+#### Tech Support Report (TSR)
 
   * [dellemc_idrac_export_tsr - Export TSR to a network share](./dellemc_idrac_export_tsr.md)
 
 
 ---
 
-Copyright © 2017 Dell Inc. or its subsidiaries. All rights reserved. Dell, EMC, and other trademarks are trademarks of Dell Inc. or its subsidiaries. Other trademarks may be trademarks of their respective owners.
+Copyright © 2018 Dell Inc. or its subsidiaries. All rights reserved. Dell, EMC, and other trademarks are trademarks of Dell Inc. or its subsidiaries. Other trademarks may be trademarks of their respective owners.
