@@ -346,6 +346,7 @@ def update_fw_from_repo(idrac, module):
         share_name = module.params.get('share_name')
         share_user = module.params.get('share_user')
         share_pwd = module.params.get('share_pwd')
+        share_mnt = module.params.get('share_mnt')
         catalog_file_name = module.params.get('catalog_file_name')
         apply_update = module.params.get('apply_update')
         reboot = module.params.get('reboot')
