@@ -67,6 +67,14 @@ options:
       - Network share user password
     type: 'str'
     default: None
+  share_mnt:
+    required: False
+    description:
+      - Local mount path on the ansible controller machine for the remote network share (CIFS, NFS) provided in I(share_name). This is not applicable for HTTP, HTTPS and FTP share.
+      - This option is mandatory only when using firmware update from a network repository using Server Configuration Profiles (SCP).
+      - SCP based firmware update is only supported for iDRAC firmware version >=2.60.60.60 and >=3.00.00.00
+    default: None
+    type: 'path'
   catalog_file_name:
     required: False
     description:
@@ -113,18 +121,52 @@ author:
 
 EXAMPLES = '''
 ---
+# Update firmware from repository on a CIFS Share. '\\xx.xx.xx.xx\share' is
+# locally mounted to '/mnt/cifs_share' in a read-write mode on the Ansible
+# controller machine
 - name: Update firmware from repository on a CIFS Share
-    dellemc_idrac_virtual_drive:
-       idrac_ip:   "192.168.1.1"
-       idrac_user: "root"
-       idrac_pwd:  "calvin"
-       share_name: "\\\\192.168.10.10\\share"
-       share_user: "user1"
-       share_pwd:  "password"
-       catalog_file_name:  "Catalog.xml"
-       apply_update:   True
-       reboot:     False
-       job_wait:   True
+  dellemc_idrac_firmware_update:
+    idrac_ip:   "xx.xx.xx.xx"
+    idrac_user: "xxxx"
+    idrac_pwd:  "xxxxxx"
+    share_name: "\\\\xx.xx.xx.xx\\share"
+    share_user: "xxxx"
+    share_pwd:  "xxxxxx"
+    share_mnt:  "/mnt/cifs_share"
+    catalog_file_name:  "Catalog.xml"
+    apply_update:   True
+    reboot:     False
+    job_wait:   True
+  delegate_to: localhost
+
+# Update firmware from repository on a NFS Share. 'xx.xx.xx.xx:/share' is
+# locally mounted to '/mnt/nfs_share' in a read-write mode on the Ansible
+# controller machine
+- name: Update firmware from repository on a NFS Share
+  dellemc_idrac_firmware_update:
+    idrac_ip:   "xx.xx.xx.xx"
+    idrac_user: "xxxx"
+    idrac_pwd:  "xxxxxx"
+    share_name: "xx.xx.xx.xx:/share"
+    share_mnt:  "/mnt/nfs_share"
+    catalog_file_name:  "Catalog.xml"
+    apply_update:   True
+    reboot:     False
+    job_wait:   True
+  delegate_to: localhost
+
+# Update firmware from repository on a HTTP Share. 
+- name: Update firmware from repository on a HTTP Share
+  dellemc_idrac_firmware_update:
+    idrac_ip:   "xx.xx.xx.xx"
+    idrac_user: "xxxx"
+    idrac_pwd:  "xxxxxx"
+    share_name: "http://ip_address[:port]/share"
+    catalog_file_name:  "Catalog.xml"
+    apply_update:   True
+    reboot:     False
+    job_wait:   True
+  delegate_to: localhost
 
 '''
 
@@ -132,21 +174,21 @@ RETURN = '''
 ---
 # Output the status of an firmware update JOB
 
-    "msg": {
-        "ElapsedTimeSinceCompletion": "0",
-        "InstanceID": "JID_396919089508",
-        "JobStartTime": "NA",
-        "JobStatus": "Completed",
-        "JobUntilTime": "NA",
-        "Message": "Job completed successfully.",
-        "MessageArguments": "NA",
-        "MessageID": "RED001",
-        "Name": "Repository Update",
-        "PercentComplete": "100",
-        "Status": "Success",
-        "file": "http://100.100.28.117/firmware/R730-Backplane-Expander-Repo_1.02_Catalog.xml",
-        "retval": true
-    }
+  "msg": {
+      "ElapsedTimeSinceCompletion": "0",
+      "InstanceID": "JID_396919089508",
+      "JobStartTime": "NA",
+      "JobStatus": "Completed",
+      "JobUntilTime": "NA",
+      "Message": "Job completed successfully.",
+      "MessageArguments": "NA",
+      "MessageID": "RED001",
+      "Name": "Repository Update",
+      "PercentComplete": "100",
+      "Status": "Success",
+      "file": "http://100.100.28.117/firmware/R730-Backplane-Expander-Repo_1.02_Catalog.xml",
+       "retval": true
+  }
 
 '''
 
@@ -230,8 +272,9 @@ def update_fw_from_url(idrac, share_name, share_user, share_pwd,
 
     return msg
 
-def update_fw_from_nw_share(idrac, share_name, share_user, share_pwd,
-        catalog_file_name, apply_update=True, reboot=False, job_wait=True):
+def update_fw_from_nw_share(idrac, share_name, share_user, share_pwd, share_mnt,
+                            catalog_file_name, apply_update=True, reboot=False,
+                            job_wait=True):
     """
     Update firmware from a repository on a remote network share (CIFS, NFS) 
 
@@ -246,6 +289,9 @@ def update_fw_from_nw_share(idrac, share_name, share_user, share_pwd,
 
     :param share_pwd: password for the remote network share
     :type share_pwd: ``str``
+
+    :param share_mnt: local mount point for the remote network share
+    :type share_mnt: ``str``
 
     :param catalog_file_name: Name of Catalog file on the repository
     :type catalog_file_name: ``str``
@@ -263,8 +309,10 @@ def update_fw_from_nw_share(idrac, share_name, share_user, share_pwd,
     :rtype: ``dict``
     """
 
-    nw_repo = FileOnShare(remote=share_name, isFolder=True)
-    nw_repo.addcreds(UserCredentials(share_user, share_pwd))
+    nw_repo = FileOnShare(remote=share_name,
+                          mount_point=share_mnt,
+                          creds=UserCredentials(share_user, share_pwd),
+                          isFolder=True)
     catalog_path = nw_repo.new_file(catalog_file_name)
 
     msg = idrac.update_mgr.update_from_repo(catalog_path=catalog_path,
@@ -326,10 +374,11 @@ def update_fw_from_repo(idrac, module):
             # local mount point is required for SCP based firmware update
             # using Redfish
             if idrac.use_redfish and (not module.params.get('share_mnt')):
-                module.fail_json(msg="Error: \'share_mnt\' is a mandatory argument for Redfish based firmware update using Server Configuration Profile (SCP)")
+                module.fail_json(msg="Error: \'share_mnt\' is a mandatory argument for Redfish based firmware update using Server Configuration Profile")
 
             msg['msg'] = update_fw_from_nw_share(idrac, share_name, share_user,
-                                                 share_pwd, catalog_file_name,
+                                                 share_pwd, share_mnt,
+                                                 catalog_file_name,
                                                  apply_update, reboot, job_wait)
 
         if "Status" in msg['msg']:
@@ -375,7 +424,6 @@ def main():
             job_wait=dict(required=False, default=True, type='bool'),
             ignore_cert_warning=dict(required=False, default=True, type='bool')
         ),
-
         supports_check_mode=False)
 
     if not HAS_OMSDK:
