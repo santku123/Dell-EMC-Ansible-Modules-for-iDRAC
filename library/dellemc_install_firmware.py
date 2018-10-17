@@ -268,6 +268,7 @@ def update_firmware_from_url(idrac, share_name, share_user, share_pwd,
                          share_name=path, share_user=share_user,
                          share_pwd=share_pwd, catalog_file=catalog_file_name,
                          apply_update=apply_update, reboot_needed=reboot,
+                         ignore_cert_warning=ignore_cert_warning,
                          job_wait=job_wait)
 
     return msg
