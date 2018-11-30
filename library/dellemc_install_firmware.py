@@ -10,7 +10,6 @@
 # All rights reserved. Dell, EMC, and other trademarks are trademarks of Dell Inc. or its subsidiaries.
 # Other trademarks may be trademarks of their respective owners.
 
-
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
@@ -187,7 +186,7 @@ RETURN = '''
       "PercentComplete": "100",
       "Status": "Success",
       "file": "http://<ipaddress>/firmware/Catalog.xml",
-       "retval": true
+      "retval": true
   }
 
 '''
