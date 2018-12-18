@@ -60,20 +60,17 @@ options:
     description:
       - Network share user in the format 'user@domain' or 'domain\\user' if user is part of a domain else 'user'. This option is mandatory if I(share_name) is a CIFS share
     type: 'str'
-    default: None
   share_pwd:
     required: False
     description:
       - Network share user password
     type: 'str'
-    default: None
   share_mnt:
     required: False
     description:
       - Local mount path on the ansible controller machine for the remote network share (CIFS, NFS) provided in I(share_name). This is not applicable for HTTP, HTTPS and FTP share.
       - This option is mandatory only when using firmware update from a network repository using Server Configuration Profiles (SCP).
       - SCP based firmware update is only supported for iDRAC firmware version >=3.00.00.00
-    default: None
     type: 'path'
   catalog_file_name:
     required: False
@@ -83,7 +80,7 @@ options:
     type: 'str'
   apply_update:
     required: False
-    description: 
+    description:
       - if C(True), the updatable packages from Catalog XML are staged
       - if C(False), do not Install Updates
     default: True
@@ -121,22 +118,22 @@ author:
 
 EXAMPLES = '''
 ---
-# Update firmware from repository on a CIFS Share. '\\xx.xx.xx.xx\share' is
+# Update firmware from repository on a CIFS Share. '\\\\xx.xx.xx.xx\\share' is
 # locally mounted to '/mnt/cifs_share' in a read-write mode on the Ansible
 # controller machine
 - name: Update firmware from repository on a CIFS Share
   dellemc_install_firmware:
-    idrac_ip:   "xx.xx.xx.xx"
+    idrac_ip: "xx.xx.xx.xx"
     idrac_user: "xxxx"
-    idrac_pwd:  "xxxxxx"
-    share_name: "\\\\xx.xx.xx.xx\\share"
+    idrac_pwd: "xxxxxx"
+    share_name: '\\\\xx.xx.xx.xx\\share'
     share_user: "xxxx"
-    share_pwd:  "xxxxxx"
-    share_mnt:  "/mnt/cifs_share"
-    catalog_file_name:  "Catalog.xml"
-    apply_update:   True
-    reboot:     False
-    job_wait:   True
+    share_pwd: "xxxxxx"
+    share_mnt: "/mnt/cifs_share"
+    catalog_file_name: "Catalog.xml"
+    apply_update: True
+    reboot: False
+    job_wait: True
   delegate_to: localhost
 
 # Update firmware from repository on a NFS Share. 'xx.xx.xx.xx:/share' is
@@ -157,7 +154,7 @@ EXAMPLES = '''
 
 # Update firmware from repository on a HTTP Share.
 # In this example, http://<ipaddress>/firmware contains the Catalog file and
-# the DUPs 
+# the DUPs
 - name: Update firmware from repository on a HTTP Share
   dellemc_install_firmware:
     idrac_ip: "192.168.0.1"
@@ -169,6 +166,7 @@ EXAMPLES = '''
     reboot: False
     job_wait: True
   delegate_to: localhost
+
 '''
 
 RETURN = '''
@@ -194,6 +192,7 @@ msg:
             "retval": true
          }
     }
+
 '''
 
 import re
@@ -249,18 +248,18 @@ def update_firmware_from_url(idrac, share_name, share_user, share_pwd,
     # URL scheme
     schemes = ["ftp", "http", "https"]
 
-    # Validate URL 
+    # Validate URL
     p = urlparse(share_name)
     if not p:
-        msg = "Invalid url: {}".format(share_name)
+        msg = "Invalid url: {0}".format(share_name)
     else:
         path = p.path
         if p.scheme not in schemes:
             error_str = "URL scheme must be one of " + str(schemes)
-            msg = "Invalid url: {}. {}".format(share_name, error_str)
+            msg = "Invalid url: {0}. {1}".format(share_name, error_str)
         elif not (p.netloc and re.match(ipv4_re, p.netloc)):
-            error_str = "URL netloc must be a valid IPv4 or IPv6 address."
-            msg = "Invalid url: {}. {}".format(share_name, error_str)
+            error_str = "URL netloc must be a valid IPv4 address."
+            msg = "Invalid url: {0}. {1}".format(share_name, error_str)
         else:
             if not p.path:
                 # if path is empty (for e.g. in "http://192.168.10.10"), then
@@ -283,7 +282,7 @@ def update_firmware_from_net_share(idrac, share_name, share_user, share_pwd,
                                    apply_update=True, reboot=False,
                                    job_wait=True):
     """
-    Update firmware from a repository on a remote network share (CIFS, NFS) 
+    Update firmware from a repository on a remote network share (CIFS, NFS)
 
     :param idrac: iDRAC connection object
     :type idrac: iDRAC connection object
@@ -312,7 +311,7 @@ def update_firmware_from_net_share(idrac, share_name, share_user, share_pwd,
     :param job_wait: Wait for JOB to be completed
     :type job_wait: ``bool``
 
-    :returns: A dict containing the return value for the Update Job 
+    :returns: A dict containing the return value for the Update Job
     :rtype: ``dict``
     """
 
@@ -363,7 +362,7 @@ def update_firmware_from_repo(idrac, module):
 
         # check if valid catalog file
         if not catalog_file_name.lower().endswith('.xml'):
-            module.fail_json(msg="Invalid catalog file: {}. Must end with \'.xml\' or \'.XML\' extension".format(catalog_file_name))
+            module.fail_json(msg="Invalid catalog file: {0}. Must end with \'.xml\' or \'.XML\' extension".format(catalog_file_name))
 
         # Temporary Fix for 12G and 13G iDRAC - Use WS-Man API for Firmware
         # update from a network repository
@@ -372,7 +371,7 @@ def update_firmware_from_repo(idrac, module):
             idrac.use_redfish = False
 
         # check if HTTP/HTTPS share
-        if share_name.lower().startswith(('http://', 'https://', 'ftp://')): 
+        if share_name.lower().startswith(('http://', 'https://', 'ftp://')):
             # Update from http/https/ftp repo is currently supported using
             # only WS-Man
             idrac.use_redfish = False
@@ -412,10 +411,6 @@ def main():
 
     module = AnsibleModule(
         argument_spec=dict(
-
-            # iDRAC handle
-            idrac=dict(required=False, type='dict'),
-
             # iDRAC Credentials
             idrac_ip=dict(required=True, type='str'),
             idrac_user=dict(required=True, type='str'),
@@ -452,6 +447,7 @@ def main():
     if err:
         module.fail_json(**msg)
     module.exit_json(**msg)
+
 
 if __name__ == '__main__':
     main()
