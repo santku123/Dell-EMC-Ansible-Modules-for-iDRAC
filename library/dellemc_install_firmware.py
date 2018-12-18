@@ -3,12 +3,13 @@
 
 #
 # Dell EMC OpenManage Ansible Modules
-# Version 1.0
+# Version 1.1
 # Copyright (C) 2018 Dell Inc.
 
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 # All rights reserved. Dell, EMC, and other trademarks are trademarks of Dell Inc. or its subsidiaries.
 # Other trademarks may be trademarks of their respective owners.
+
 
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
@@ -57,7 +58,7 @@ options:
   share_user:
     required: False
     description:
-      - Network share user in the format 'user@domain' or or 'domain\\user' if user is part of a domain else 'user'. This option is mandatory if I(share_name) is a CIFS share
+      - Network share user in the format 'user@domain' or 'domain\\user' if user is part of a domain else 'user'. This option is mandatory if I(share_name) is a CIFS share
     type: 'str'
     default: None
   share_pwd:
@@ -71,7 +72,7 @@ options:
     description:
       - Local mount path on the ansible controller machine for the remote network share (CIFS, NFS) provided in I(share_name). This is not applicable for HTTP, HTTPS and FTP share.
       - This option is mandatory only when using firmware update from a network repository using Server Configuration Profiles (SCP).
-      - SCP based firmware update is only supported for iDRAC firmware version >=2.60.60.60 and >=3.00.00.00
+      - SCP based firmware update is only supported for iDRAC firmware version >=3.00.00.00
     default: None
     type: 'path'
   catalog_file_name:
@@ -143,52 +144,56 @@ EXAMPLES = '''
 # controller machine
 - name: Update firmware from repository on a NFS Share
   dellemc_install_firmware:
-    idrac_ip:   "xx.xx.xx.xx"
+    idrac_ip: "xx.xx.xx.xx"
     idrac_user: "xxxx"
-    idrac_pwd:  "xxxxxx"
+    idrac_pwd: "xxxxxx"
     share_name: "xx.xx.xx.xx:/share"
-    share_mnt:  "/mnt/nfs_share"
-    catalog_file_name:  "Catalog.xml"
-    apply_update:   True
-    reboot:     False
-    job_wait:   True
+    share_mnt: "/mnt/nfs_share"
+    catalog_file_name: "Catalog.xml"
+    apply_update: True
+    reboot: False
+    job_wait: True
   delegate_to: localhost
 
-# Update firmware from repository on a HTTP Share. In this example, http://<ipaddress>/firmware contains the Catalog file and the DUPs 
+# Update firmware from repository on a HTTP Share.
+# In this example, http://<ipaddress>/firmware contains the Catalog file and
+# the DUPs 
 - name: Update firmware from repository on a HTTP Share
   dellemc_install_firmware:
-    idrac_ip:   "xx.xx.xx.xx"
-    idrac_user: "xxxx"
-    idrac_pwd:  "xxxxxx"
+    idrac_ip: "192.168.0.1"
+    idrac_user: "user_name"
+    idrac_pwd: "user_pwd"
     share_name: "http://<ipaddress>/firmware"
-    catalog_file_name:  "Catalog.xml"
-    apply_update:   True
-    reboot:     False
-    job_wait:   True
+    catalog_file_name: "Catalog.xml"
+    apply_update: True
+    reboot: False
+    job_wait: True
   delegate_to: localhost
-
 '''
 
 RETURN = '''
 ---
-# Output the status of an firmware update JOB
-
-  "msg": {
-      "ElapsedTimeSinceCompletion": "0",
-      "InstanceID": "JID_396919089508",
-      "JobStartTime": "NA",
-      "JobStatus": "Completed",
-      "JobUntilTime": "NA",
-      "Message": "Job completed successfully.",
-      "MessageArguments": "NA",
-      "MessageID": "RED001",
-      "Name": "Repository Update",
-      "PercentComplete": "100",
-      "Status": "Success",
-      "file": "http://<ipaddress>/firmware/Catalog.xml",
-      "retval": true
-  }
-
+msg:
+  type: dict
+  description: the status of an firmware update JOB
+  returned: success
+  sample: {
+        "msg": {
+            "ElapsedTimeSinceCompletion": "0",
+            "InstanceID": "JID_396919089508",
+            "JobStartTime": "NA",
+            "JobStatus": "Completed",
+            "JobUntilTime": "NA",
+            "Message": "Job completed successfully.",
+            "MessageArguments": "NA",
+            "MessageID": "RED001",
+            "Name": "Repository Update",
+            "PercentComplete": "100",
+            "Status": "Success",
+            "file": "http://<ipaddress>/firmware/Catalog.xml",
+            "retval": true
+         }
+    }
 '''
 
 import re
@@ -360,7 +365,8 @@ def update_firmware_from_repo(idrac, module):
         if not catalog_file_name.lower().endswith('.xml'):
             module.fail_json(msg="Invalid catalog file: {}. Must end with \'.xml\' or \'.XML\' extension".format(catalog_file_name))
 
-        # Temporary Fix for iDRAC firmware version < 2.50.50.50
+        # Temporary Fix for 12G and 13G iDRAC - Use WS-Man API for Firmware
+        # update from a network repository
         idrac.use_redfish = True
         if any(gen in idrac.ServerGeneration for gen in ['12', '13']):
             idrac.use_redfish = False
