@@ -21,13 +21,13 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = '''
 ---
 module: dellemc_install_firmware
-short_description: Firmware update from a repository on a remote network share (CIFS, NFS) or a URL (http, https, ftp)
+short_description: Firmware update from a repository on a remote network share (CIFS, NFS) or a URL (HTTP, HTTPS, FTP)
 version_added: "2.3"
 description:
-    - Update the Firmware by connecting to a network repository (CIFS, NFS, HTTP, HTTPS, FTP) that contains a catalog of available updates
-    - Remote network share or URL should contain a valid repository of Update Packages (DUPs) and a catalog file describing the DUPs
-    - All applicable updates contained in the repository is applied to the system
-    - This feature is only available with iDRAC Enterprise License
+    - Update the Firmware by connecting to a network repository (CIFS, NFS, HTTP, HTTPS, FTP) that contains a catalog of available updates.
+    - Remote network share or URL should contain a valid repository of Update Packages (DUPs) and a catalog file describing the DUPs.
+    - All applicable updates contained in the repository is applied to the system.
+    - This feature is only available with iDRAC Enterprise License.
 options:
   idrac_ip:
     required: True
@@ -58,7 +58,9 @@ options:
   share_user:
     required: False
     description:
-      - Network share user in the format 'user@domain' or 'domain\\user' if user is part of a domain else 'user'. This option is mandatory if I(share_name) is a CIFS share
+      - Network share user in the format 'user@domain' or 'domain\\user' if
+        user is part of a domain else 'user'. This option is mandatory if
+        I(share_name) is a CIFS share.
     type: 'str'
   share_pwd:
     required: False
@@ -68,9 +70,13 @@ options:
   share_mnt:
     required: False
     description:
-      - Local mount path on the ansible controller machine for the remote network share (CIFS, NFS) provided in I(share_name). This is not applicable for HTTP, HTTPS and FTP share.
-      - This option is mandatory only when using firmware update from a network repository using Server Configuration Profiles (SCP).
-      - SCP based firmware update is only supported for iDRAC firmware version >=3.00.00.00
+      - Local mount path on the ansible controller machine for the remote
+        network share (CIFS, NFS) provided in I(share_name). This is not
+        applicable for HTTP, HTTPS and FTP share.
+      - This option is mandatory only when using firmware update from a network
+        repository using Server Configuration Profiles (SCP).
+      - SCP based firmware update is only supported for iDRAC firmware
+        version >=3.00.00.00.
     type: 'path'
   catalog_file_name:
     required: False
@@ -230,7 +236,9 @@ def update_firmware_from_url(idrac, share_name, share_user, share_pwd,
     :param apply_update: If apply_update is set to True, the updatable packages from Catalog XML are staged. If it is set to False, no updates are applied.
     :type apply_update: ``bool``
 
-    :param reboot: True if the server needs to be rebooted during the update process. False if the updates take effect after the server is rebooted the next time.
+    :param reboot: True if the server needs to be rebooted during the update
+    process. False if the updates take effect after the server is rebooted the
+    next time.
     :type reboot: ``bool``
 
     :param job_wait: True if need to wait for firmware job to be completed. False if need to return immediately after staging the job in LC queue
@@ -267,12 +275,11 @@ def update_firmware_from_url(idrac, share_name, share_user, share_pwd,
                 path += "/"
 
             msg = idrac.update_mgr.update_from_repo_url(
-                         ipaddress=p.netloc, share_type=p.scheme,
-                         share_name=path, share_user=share_user,
-                         share_pwd=share_pwd, catalog_file=catalog_file_name,
-                         apply_update=apply_update, reboot_needed=reboot,
-                         ignore_cert_warning=ignore_cert_warning,
-                         job_wait=job_wait)
+                ipaddress=p.netloc, share_type=p.scheme, share_name=path,
+                share_user=share_user, share_pwd=share_pwd,
+                catalog_file=catalog_file_name, apply_update=apply_update,
+                reboot_needed=reboot, ignore_cert_warning=ignore_cert_warning,
+                job_wait=job_wait)
 
     return msg
 
@@ -385,11 +392,12 @@ def update_firmware_from_repo(idrac, module):
             if idrac.use_redfish and (not module.params.get('share_mnt')):
                 module.fail_json(msg="Error: \'share_mnt\' is a mandatory argument for Redfish based firmware update using Server Configuration Profile")
 
-            msg['msg'] = update_firmware_from_net_share(
-                                                 idrac, share_name, share_user,
-                                                 share_pwd, share_mnt,
-                                                 catalog_file_name,
-                                                 apply_update, reboot, job_wait)
+            msg['msg'] = update_firmware_from_net_share(idrac, share_name,
+                                                        share_user, share_pwd,
+                                                        share_mnt,
+                                                        catalog_file_name,
+                                                        apply_update, reboot,
+                                                        job_wait)
 
         if "Status" in msg['msg']:
             if msg['msg']['Status'] == "Success":
