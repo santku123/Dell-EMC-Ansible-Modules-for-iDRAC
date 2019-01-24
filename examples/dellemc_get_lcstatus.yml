@@ -1,5 +1,5 @@
 ---
-- hosts: bng_coe_group
+- hosts: hosts
   connection: local
   name: Check LC Ready Status
   gather_facts: False
