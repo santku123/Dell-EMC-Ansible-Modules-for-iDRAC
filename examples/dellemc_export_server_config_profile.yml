@@ -12,7 +12,7 @@
        idrac_pwd:       "{{ idrac_pwd }}"
        idrac_port:      "443"
        share_name:      "{{ playbook_dir }}"
-       scp_components:  "BIOS"
+       scp_components:  "IDRAC"
        job_wait:        "True"
     tags:
         - scp_components_bios
