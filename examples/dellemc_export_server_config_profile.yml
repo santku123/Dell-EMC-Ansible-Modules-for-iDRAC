@@ -25,7 +25,7 @@
        job_wait: "False"
        share_name: "{{ playbook_dir }}"
        scp_components: "NIC"
-       export_format: "JSON"
+       export_format: "XML"
        export_use: "Default"
     tags:
         - scp_components_nic
