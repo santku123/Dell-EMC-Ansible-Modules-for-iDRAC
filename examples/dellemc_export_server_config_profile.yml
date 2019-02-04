@@ -12,7 +12,7 @@
        idrac_pwd:       "{{ idrac_pwd }}"
        idrac_port:      "443"
        #share_name:      "{{ playbook_dir }}"
-       share_name:      "/root/NFSSHARE"
+       share_name:      "/var/NFSSHARE"
        scp_components:  "BIOS"
        job_wait:        "True"
     tags:
@@ -25,7 +25,7 @@
        idrac_pwd:  "{{ idrac_pwd }}"
        job_wait: "False"
        #share_name: "{{ playbook_dir }}"
-       share_name:      "/root/NFSSHARE"
+       share_name: "/var/NFSSHARE"
        scp_components: "NIC"
        export_format: "XML"
        export_use: "Default"
