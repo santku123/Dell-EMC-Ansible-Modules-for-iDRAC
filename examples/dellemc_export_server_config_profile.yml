@@ -14,7 +14,7 @@
        #share_name:      "{{ playbook_dir }}"
        share_name:      "/var/NFSSHARE"
        scp_components:  "BIOS"
-       job_wait:        "True"
+       job_wait:        "False"
     tags:
         - scp_components_bios
         
