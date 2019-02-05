@@ -1,5 +1,5 @@
 ---
-- hosts: hosts
+- hosts: mutlihostgroup
   connection: local
   name: Check LC Ready Status
   gather_facts: False
