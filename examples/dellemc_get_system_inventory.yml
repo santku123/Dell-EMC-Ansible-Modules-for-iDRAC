@@ -1,5 +1,5 @@
 ---
-- hosts: mutlihostgroup
+- hosts: mutlihostgrou1
   connection: local
   name: Get system inventory
   gather_facts: False
